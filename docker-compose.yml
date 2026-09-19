@@ -1,0 +1,75 @@
+services:
+  kaneo-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${KANEO_POSTGRES_DB:-kaneo}
+      POSTGRES_USER: ${KANEO_POSTGRES_USER:-kaneo}
+      POSTGRES_PASSWORD: ${KANEO_POSTGRES_PASSWORD:?defina KANEO_POSTGRES_PASSWORD no .env}
+    volumes:
+      - kaneo_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KANEO_POSTGRES_USER:-kaneo} -d ${KANEO_POSTGRES_DB:-kaneo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kaneo:
+    image: ghcr.io/usekaneo/kaneo:latest
+    ports:
+      - "5173:5173"
+    environment:
+      KANEO_CLIENT_URL: ${KANEO_CLIENT_URL:-http://localhost:5173}
+      POSTGRES_HOST: kaneo-db
+      POSTGRES_DB: ${KANEO_POSTGRES_DB:-kaneo}
+      POSTGRES_USER: ${KANEO_POSTGRES_USER:-kaneo}
+      POSTGRES_PASSWORD: ${KANEO_POSTGRES_PASSWORD:?defina KANEO_POSTGRES_PASSWORD no .env}
+      AUTH_SECRET: ${KANEO_AUTH_SECRET:?defina KANEO_AUTH_SECRET no .env (openssl rand -hex 32)}
+    depends_on:
+      kaneo-db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5173/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  bridge-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${BRIDGE_POSTGRES_DB:-bridge}
+      POSTGRES_USER: ${BRIDGE_POSTGRES_USER:-bridge}
+      POSTGRES_PASSWORD: ${BRIDGE_POSTGRES_PASSWORD:?defina BRIDGE_POSTGRES_PASSWORD no .env}
+    ports:
+      - "5433:5432"
+    volumes:
+      - bridge_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${BRIDGE_POSTGRES_USER:-bridge} -d ${BRIDGE_POSTGRES_DB:-bridge}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bridge:
+    build:
+      context: ./bridge
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./bridge/.env
+    environment:
+      DATABASE_URL: ${BRIDGE_DATABASE_URL:?defina BRIDGE_DATABASE_URL no .env}
+      KANEO_API_URL: http://kaneo:5173/api
+    depends_on:
+      bridge-db:
+        condition: service_healthy
+      kaneo:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  kaneo_postgres_data:
+  bridge_postgres_data:

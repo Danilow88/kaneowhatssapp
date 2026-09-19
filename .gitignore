@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+build/
+coverage/
+
+*.log
+.DS_Store
+
+frontend/dist/
+backend/dist/
+
+.ngrok/

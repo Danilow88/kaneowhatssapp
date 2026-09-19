@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ConversationStep {
+  NEW_TICKET_NAME
+  NEW_TICKET_EMAIL
+  NEW_TICKET_CUSTOMER_TYPE
+  NEW_TICKET_CATEGORY
+  NEW_TICKET_DESCRIPTION
+  NEW_TICKET_CONFIRM
+}
+
+// Estado da conversa em andamento para um telefone. Uma linha por telefone.
+model ConversationState {
+  phone                  String            @id
+  step                   ConversationStep?
+  data                   Json              @default("{}")
+  lastProcessedMessageId String?
+  updatedAt              DateTime          @updatedAt
+}
+
+// Vínculo telefone -> task do Kaneo. Append-only: um telefone pode ter
+// vários chamados ao longo do tempo, o status vigente é sempre consultado
+// direto no Kaneo (nunca cacheado aqui).
+model TicketLink {
+  id              String   @id @default(cuid())
+  phone           String
+  kaneoTaskId     String   @unique
+  kaneoTaskNumber Int
+  customerType    String
+  createdAt       DateTime @default(now())
+
+  @@index([phone, createdAt])
+}

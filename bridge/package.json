@@ -1,0 +1,29 @@
+{
+  "name": "whatsapp-kaneo-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --experimental-strip-types --watch src/main.ts",
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "setup:kaneo": "node --experimental-strip-types scripts/setup-kaneo.ts",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@fastify/formbody": "^8.0.1",
+    "@prisma/client": "^6.1.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.1.0",
+    "twilio": "^5.3.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "prisma": "^6.1.0",
+    "typescript": "^5.6.3"
+  }
+}
